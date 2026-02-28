@@ -209,16 +209,36 @@ def train_and_eval_tiny_cvae(x, chunks):
             optimizer.step()
             loop.set_postfix_str(f"loss={loss.item():10.4f}")
 
+            step += 1
+
     #eval, should give a collapsed mean of the modes
     test_x = torch.tensor([[0.0], [0.5], [-0.5]]).to(device)
+    #test_x = torch.tensor([[0.0]]).to(device)
+
     model.eval()
     with torch.no_grad():
-        sampled_z = torch.zeros(test_x.size(0), 1).to(device) # use 0
-        predictions = model.decoder(test_x,sampled_z).cpu()
-        for i in range(3):
-          print(f"x={test_x[i].item():.1f}  chunk_mean={predictions[i].mean().item():.3f}")
+        #sampled_z = torch.zeros(test_x.size(0), 1).to(device) # use 0
+        #z = torch.full((1, 1), z_val).to(device)          
 
+        for z in [-2.0, -1.0, -0.0001, 0.0, 0.0001, 1.0, 2.0]:
+        #for z in [0.0]:        
+            sampled_z = torch.full((test_x.size(0), 1), z, device=device) # same z for all samples in the batch, so we can see how changing z changes the predictions
+            predictions = model.decoder(test_x, sampled_z).cpu()  
 
+            for i in range(test_x.size(0)):                              
+                print(f"x={test_x[i].item():.1f}  chunk_mean={predictions[i].mean().item():.3f}")
+
+# There's no signal between x and the chunks (different modes) and even with KL CVAE still collapses the modes together, predicting the mean of the modes. 
+# So I think there's something fishy in the ACT paper.
+
+#(venv) PS E:\git\ai\minimal-cvae-with-task-conditioning> python .\cvae.py
+#Releasing the hounds
+#Using device:cpu
+#model:params 10060
+#x=0.0  chunk_mean=0.008
+#x=0.5  chunk_mean=-0.111
+#x=-0.5  chunk_mean=0.024
+#Letz go
 
 if __name__ == "__main__":
     print("Releasing the hounds")
@@ -233,6 +253,6 @@ if __name__ == "__main__":
     
     #scratch()
 
-    train_and_eval_tiny_mlp(x, chunks)
-
+    #train_and_eval_tiny_mlp(x, chunks)
+    train_and_eval_tiny_cvae(x, chunks)
     print("Letz go")
